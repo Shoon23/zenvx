@@ -26,6 +26,14 @@ Standard Zod is great, but environment variables are always strings. This leads 
 
 ---
 
+## Features
+
+- ✅ Type-safe environment variables
+- ✅ Smart coercion for numbers, booleans, and ports
+- ✅ Strict validation for strings, URLs, emails, JSON, enums
+- ✅ Beautiful, human-readable error reporting
+- ✅ Seamless TypeScript integration
+
 ## Installation
 
 ```bash
@@ -42,7 +50,7 @@ yarn add zenvx zod
 
 Create a file (e.g., src/env.ts) and export your configuration:
 
-```javascript
+```ts
 import { defineEnv, tx } from "zenvx";
 
 export const env = defineEnv({
@@ -61,7 +69,7 @@ export const env = defineEnv({
 
 Now use it anywhere in your app:
 
-```javascript
+```ts
 import { env } from "./env";
 
 console.log(`Server running on port ${env.PORT}`);
@@ -95,13 +103,12 @@ DATABASE_URL: Must be a valid URL
 | `tx.email()`     | Valid email address.                                               | `"admin@app.com"`    | `"admin@..."`   |
 | `tx.json()`      | Parses a JSON string into an Object.                               | `{"foo":"bar"}`      | `{foo: "bar"}`  |
 | `tx.enum([...])` | Strict allow-list.                                                 | `"PROD"`             | `"PROD"`        |
-| `tx.ip()`        | Validates IPv4 format.                                             | `"192.168.1.1"`      | `"192..."`      |
 
 ## Customizing Error Messages
 
 Every tx validator accepts an optional custom error message.
 
-```javascript
+```ts
 export const env = defineEnv({
   API_KEY: tx.string("Please provide a REAL API Key, not just numbers!"),
   PORT: tx.port("Port is invalid or out of range"),
@@ -114,7 +121,7 @@ Custom .env Path
 
 By default, zenvx looks for .env in your project root. You can change this:
 
-```javascript
+```ts
 export const env = defineEnv(
   {
     PORT: tx.port(),
@@ -129,7 +136,7 @@ export const env = defineEnv(
 
 You can mix tx helpers with standard Zod schemas if you need specific logic.
 
-```javascript
+```ts
 import { defineEnv, tx } from "zenvx";
 import { z } from "zod";
 
