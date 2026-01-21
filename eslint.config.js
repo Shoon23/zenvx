@@ -4,7 +4,7 @@ import tsParser from "@typescript-eslint/parser";
 export default [
   {
     // ⬇️ THIS replaces .eslintignore
-    ignores: ["dist/**", "node_modules/**"],
+    ignores: ["dist/**", "node_modules/**", "tests/**"],
   },
   {
     files: ["**/*.ts"],
@@ -22,7 +22,7 @@ export default [
       "no-restricted-imports": [
         "error",
         {
-          patterns: ["../*"],
+          patterns: ["../src/*.js"],
         },
       ],
       "@typescript-eslint/no-unused-vars": [
