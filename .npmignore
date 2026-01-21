@@ -1,0 +1,32 @@
+# Source files
+src/
+tests/
+test/
+__tests__/
+
+# Configs
+.eslintrc*
+.prettierrc*
+tsconfig*.json
+vite.config.*
+vitest.config.*
+
+# Tooling
+node_modules/
+coverage/
+scripts/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Docs (optional — remove if you want them published)
+*.md
