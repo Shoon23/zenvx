@@ -1,9 +1,11 @@
 import { z } from "zod";
 import type { ZodObject, ZodRawShape } from "zod";
+import type { ValidationMode } from "./types.js";
 
 export function parseEnv<T extends ZodRawShape>(
   schema: ZodObject<T>,
-  source: Record<string, string | undefined>
+  source: Record<string, string | undefined>,
+  mode: ValidationMode = "runtime",
 ): z.infer<ZodObject<T>> {
   const result = schema.safeParse(source);
 
@@ -12,17 +14,28 @@ export function parseEnv<T extends ZodRawShape>(
       .map((i) => `❌ ${i.path.join(".")}: ${i.message}`)
       .join("\n");
 
-    throw new Error(
-      [
-        "",
-        "┌──────────────────────────────────────────────┐",
-        "│  ❌ INVALID ENVIRONMENT VARIABLES DETECTED   │",
-        "└──────────────────────────────────────────────┘",
-        issues,
-        "",
-      ].join("\n")
-    );
+    const header =
+      mode === "build"
+        ? [
+            "┌──────────────────────────────────────────────┐",
+            "│  ❌ INVALID ENVIRONMENT VARIABLES DETECTED   │",
+            "└──────────────────────────────────────────────┘",
+          ]
+        : [
+            "┌──────────────────────────────────────────────┐",
+            "│ ⚠ WARNING INVALID ENVIRONMENT VARIABLES ⚠  │",
+            "└──────────────────────────────────────────────┘",
+          ];
+
+    const box = ["", ...header, issues, ""].join("\n");
+
+    if (mode === "build") {
+      throw new Error(box);
+    } else {
+      console.warn(box);
+      process.exit(1);
+    }
   }
 
-  return result.data;
+  return result.success ? result.data : ({} as z.infer<ZodObject<T>>);
 }
