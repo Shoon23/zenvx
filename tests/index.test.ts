@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { z } from "zod";
 import { tx, defineEnv } from "../src/index.js";
-
+import { generateExample } from "../src/core/generate-example.js";
+import fs from "fs";
 // Mock loaders to avoid reading actual .env files
 vi.mock("./loaders/dotenv.js", () => ({
   loadDotEnv: () => ({}),
@@ -167,5 +168,73 @@ describe("defineEnv", () => {
         API_PORT: tx.port(),
       });
     }).toThrow();
+  });
+});
+describe("defineEnv runtime mode", () => {
+  let exitMock: any;
+
+  beforeEach(() => {
+    exitMock = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("process.exit called");
+    });
+  });
+
+  afterEach(() => {
+    exitMock.mockRestore();
+  });
+
+  it("should exit process on invalid env", () => {
+    process.env.PORT = "not-a-number";
+
+    expect(() => {
+      defineEnv({ PORT: tx.port() }, { mode: "runtime" });
+    }).toThrow("process.exit called");
+
+    expect(exitMock).toHaveBeenCalledWith(1);
+  });
+
+  it("should parse valid env correctly", () => {
+    process.env.PORT = "3000";
+
+    const config = defineEnv({ PORT: tx.port() }, { mode: "runtime" });
+    expect(config.PORT).toBe(3000);
+  });
+});
+describe("defineEnv build mode", () => {
+  it("should throw error on invalid env", () => {
+    process.env.PORT = "not-a-number";
+
+    expect(() =>
+      defineEnv({ PORT: tx.port() }, { mode: "build" }),
+    ).toThrowError(/Must be a valid port/);
+  });
+
+  it("should parse valid env correctly", () => {
+    process.env.PORT = "8080";
+
+    const config = defineEnv({ PORT: tx.port() }, { mode: "build" });
+    expect(config.PORT).toBe(8080);
+  });
+});
+describe("generateExample", () => {
+  const schema = {
+    PORT: tx.port().default(3000),
+    API_KEY: tx.string().default("example-key"),
+    DEBUG: tx.bool().default(false),
+  };
+
+  it("generates .env.example correctly", () => {
+    defineEnv(schema, { mode: "build", generateExample: true });
+
+    // Ensure file exists
+    expect(fs.existsSync(".env.example")).toBe(true);
+
+    // Read content
+    const content = fs.readFileSync(".env.example", "utf-8");
+
+    console.log(content);
+    expect(content).toContain("PORT=3000");
+    expect(content).toContain("API_KEY");
+    expect(content).toContain("DEBUG=false");
   });
 });
