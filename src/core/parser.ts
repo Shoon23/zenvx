@@ -4,7 +4,7 @@ import type { ValidationMode } from "./types.js";
 
 export function parseEnv<T extends ZodRawShape>(
   schema: ZodObject<T>,
-  source: Record<string, string | undefined>,
+  source: Record<string, unknown>,
   mode: ValidationMode = "runtime",
 ): z.infer<ZodObject<T>> {
   const result = schema.safeParse(source);

@@ -35,6 +35,7 @@ Standard Zod is great, but environment variables are always strings. This leads 
 - ✅ Seamless TypeScript integration
 - ✅ `.env.example` auto-generation
 - ✅ Runtime **and** build-time validation modes
+- ✅ Framework adapters: Node.js, Next.js (server + client), Vite
 
 ## Installation
 
@@ -76,6 +77,60 @@ import { env } from "./env";
 
 console.log(`Server running on port ${env.PORT}`);
 // TypeScript knows env.PORT is a number!
+```
+
+## Framework Adapters
+
+zenvx supports different frameworks with adapters for proper environment handling.
+
+### Node.js
+
+```ts
+import { loadNodeEnv } from "zenvx/node";
+
+const env = loadNodeEnv({
+  PORT: tx.port(),
+  DEBUG: tx.bool(),
+});
+```
+
+> Note: In Node.js, you must install dotenv separately and load it (e.g., via import "dotenv/config" or dotenv.config()) before calling loadNodeEnv().
+
+### Next.js
+
+Server-side
+
+```ts
+import { loadServerEnv } from "zenvx/next";
+
+const env = loadServerEnv({
+  PORT: tx.port(),
+  SECRET_KEY: tx.string(),
+});
+```
+
+Client-side (only NEXT*PUBLIC*\* allowed):
+
+```ts
+import { loadClientEnv } from "zenvx/next";
+
+const env = loadClientEnv({
+  NEXT_PUBLIC_API_URL: tx.string(),
+  NEXT_PUBLIC_DEBUG: tx.bool(),
+});
+```
+
+> Attempting to access a key without NEXT*PUBLIC* in client env throws an error.
+
+### Vite
+
+```ts
+import { loadViteEnv } from "zenvx/vite";
+
+const env = loadViteEnv({
+  VITE_API_URL: tx.string(),
+  VITE_DEBUG: tx.bool(),
+});
 ```
 
 ## .env.example Auto-Generation
@@ -186,23 +241,6 @@ export const env = defineEnv({
   API_KEY: tx.string("Please provide a REAL API Key, not just numbers!"),
   PORT: tx.port("Port is invalid or out of range"),
 });
-```
-
-## Advanced Configuration
-
-Custom .env Path
-
-By default, zenvx looks for .env in your project root. You can change this:
-
-```ts
-export const env = defineEnv(
-  {
-    PORT: tx.port(),
-  },
-  {
-    path: "./config/.env.production",
-  },
-);
 ```
 
 ## Mixing with Standard Zod

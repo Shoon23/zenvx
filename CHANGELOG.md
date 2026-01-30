@@ -37,3 +37,29 @@
 ### Fixed
 
 - `getZodTypeName()` now unwraps `ZodEffects` to detect correct type for transformed schemas
+
+## [0.2.1] - 2026-01-30
+
+### Added
+
+- **Framework adapters** for Node.js, Vite, and Next.js
+  - Node: `process.env` + optional `loadDotEnv()`
+  - Vite: `import.meta.env` support
+  - Next.js: SSR-safe server/client adapters
+- `defineEnv()` now accepts a **source object** (`process.env` / `import.meta.env`) as the second argument, making it framework-agnostic
+- TypeScript-friendly adapter usage with proper typings for `process.env` and `import.meta.env`
+- `.env.example` generation works with new adapter-aware `defineEnv()`
+- Core `tx` validators fully compatible with adapters
+
+### Changed / Improved
+
+- `defineEnv()` refactored for **source-agnostic parsing**
+- Runtime/build-time mode preserved and fully compatible with adapters
+- Tests updated for new signature (`defineEnv(schema, source, options?)`)
+- Exports updated for **adapter-specific imports** (`zenvx/node`, `zenvx/vite`, `zenvx/next`)
+- Documentation updated for adapter usage examples
+
+### Fixed
+
+- TypeScript errors in Vite (`Property 'env' does not exist on type 'ImportMeta'`) resolved via `ImportMeta` type declaration
+- Next.js `process.env` type errors fixed via `NodeJS.ProcessEnv` declaration

@@ -3,13 +3,14 @@ import { z } from "zod";
 import { tx, defineEnv } from "../src/index.js";
 import { generateExample } from "../src/core/generate-example.js";
 import fs from "fs";
+
 // Mock loaders to avoid reading actual .env files
-vi.mock("./loaders/dotenv.js", () => ({
+vi.mock("../src/loaders/dotenv.js", () => ({
   loadDotEnv: () => ({}),
 }));
 
+// -------------------- TX Validators --------------------
 describe("tx validators", () => {
-  // --- NUMBER & PORT ---
   describe("tx.number", () => {
     it("coerces string numbers to integers", () => {
       const schema = tx.number();
@@ -38,7 +39,6 @@ describe("tx validators", () => {
 
     it("rejects out-of-range ports with correct messages", () => {
       const schema = tx.port();
-
       expect(() => schema.parse("0")).toThrow();
       expect(() => schema.parse("70000")).toThrow();
     });
@@ -49,7 +49,6 @@ describe("tx validators", () => {
     });
   });
 
-  // --- BOOLEAN ---
   describe("tx.bool", () => {
     it("parses true variants", () => {
       const schema = tx.bool();
@@ -60,8 +59,6 @@ describe("tx validators", () => {
 
     it("parses false variants", () => {
       const schema = tx.bool();
-
-      console.log(schema);
       expect(schema.parse("false")).toBe(false);
       expect(schema.parse("FALSE")).toBe(false);
       expect(schema.parse("0")).toBe(false);
@@ -75,8 +72,7 @@ describe("tx validators", () => {
     });
   });
 
-  // --- STRING UTILS ---
-  describe("tx.string (Strict)", () => {
+  describe("tx.string", () => {
     it("accepts non-numeric text", () => {
       expect(tx.string().parse("hello")).toBe("hello");
       expect(tx.string().parse("abc123")).toBe("abc123");
@@ -111,7 +107,6 @@ describe("tx validators", () => {
     });
   });
 
-  // --- JSON ---
   describe("tx.json", () => {
     it("parses stringified JSON into an object", () => {
       const jsonString = '{"foo": "bar"}';
@@ -131,7 +126,7 @@ describe("tx validators", () => {
   });
 });
 
-// --- INTEGRATION TEST ---
+// -------------------- defineEnv --------------------
 describe("defineEnv", () => {
   const ORIGINAL_ENV = process.env;
 
@@ -149,11 +144,14 @@ describe("defineEnv", () => {
     process.env.DEBUG_MODE = "true";
     process.env.SERVICE_URL = "https://api.example.com";
 
-    const config = defineEnv({
-      API_PORT: tx.port(),
-      DEBUG_MODE: tx.bool(),
-      SERVICE_URL: tx.url(),
-    });
+    const config = defineEnv(
+      {
+        API_PORT: tx.port(),
+        DEBUG_MODE: tx.bool(),
+        SERVICE_URL: tx.url(),
+      },
+      process.env,
+    );
 
     expect(config.API_PORT).toBe(8080);
     expect(config.DEBUG_MODE).toBe(true);
@@ -164,12 +162,12 @@ describe("defineEnv", () => {
     process.env.API_PORT = "not-a-number";
 
     expect(() => {
-      defineEnv({
-        API_PORT: tx.port(),
-      });
+      defineEnv({ API_PORT: tx.port() }, process.env);
     }).toThrow();
   });
 });
+
+// -------------------- Runtime mode tests --------------------
 describe("defineEnv runtime mode", () => {
   let exitMock: any;
 
@@ -187,7 +185,7 @@ describe("defineEnv runtime mode", () => {
     process.env.PORT = "not-a-number";
 
     expect(() => {
-      defineEnv({ PORT: tx.port() }, { mode: "runtime" });
+      defineEnv({ PORT: tx.port() }, process.env, { mode: "runtime" });
     }).toThrow("process.exit called");
 
     expect(exitMock).toHaveBeenCalledWith(1);
@@ -196,26 +194,34 @@ describe("defineEnv runtime mode", () => {
   it("should parse valid env correctly", () => {
     process.env.PORT = "3000";
 
-    const config = defineEnv({ PORT: tx.port() }, { mode: "runtime" });
+    const config = defineEnv({ PORT: tx.port() }, process.env, {
+      mode: "runtime",
+    });
     expect(config.PORT).toBe(3000);
   });
 });
+
+// -------------------- Build mode tests --------------------
 describe("defineEnv build mode", () => {
   it("should throw error on invalid env", () => {
     process.env.PORT = "not-a-number";
 
     expect(() =>
-      defineEnv({ PORT: tx.port() }, { mode: "build" }),
+      defineEnv({ PORT: tx.port() }, process.env, { mode: "build" }),
     ).toThrowError(/Must be a valid port/);
   });
 
   it("should parse valid env correctly", () => {
     process.env.PORT = "8080";
 
-    const config = defineEnv({ PORT: tx.port() }, { mode: "build" });
+    const config = defineEnv({ PORT: tx.port() }, process.env, {
+      mode: "build",
+    });
     expect(config.PORT).toBe(8080);
   });
 });
+
+// -------------------- generateExample tests --------------------
 describe("generateExample", () => {
   const schema = {
     PORT: tx.port().default(3000),
@@ -224,7 +230,7 @@ describe("generateExample", () => {
   };
 
   it("generates .env.example correctly", () => {
-    defineEnv(schema, { mode: "build", generateExample: true });
+    defineEnv(schema, process.env, { mode: "build", generateExample: true });
 
     // Ensure file exists
     expect(fs.existsSync(".env.example")).toBe(true);
@@ -232,7 +238,6 @@ describe("generateExample", () => {
     // Read content
     const content = fs.readFileSync(".env.example", "utf-8");
 
-    console.log(content);
     expect(content).toContain("PORT=3000");
     expect(content).toContain("API_KEY");
     expect(content).toContain("DEBUG=false");

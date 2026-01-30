@@ -47,6 +47,5 @@ export function generateExample<T extends ZodRawShape>(
 
   const content = [...header, ...lines].join("\n") + "\n";
   fs.writeFileSync(path, content);
-  console.log(content);
   console.log(`✅ .env.example generated at ${path}`);
 }
