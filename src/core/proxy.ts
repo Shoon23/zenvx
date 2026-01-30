@@ -3,7 +3,7 @@ export function createTypedProxy<T extends object>(obj: T): T {
     get(target, prop: string) {
       if (!(prop in target)) {
         console.error(
-          `❌ Tried to access undefined environment variable "${prop}"`
+          `❌ Tried to access undefined environment variable "${prop}"`,
         );
         process.exit(1);
       }
