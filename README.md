@@ -35,7 +35,6 @@ Standard Zod is great, but environment variables are always strings. This leads 
 - ✅ Seamless TypeScript integration
 - ✅ `.env.example` auto-generation
 - ✅ Runtime **and** build-time validation modes
-- ✅ Framework adapters: Node.js, Next.js (server + client), Vite
 
 ## Installation
 
@@ -54,20 +53,17 @@ yarn add zenvx zod
 Create a file (e.g., src/env.ts) and export your configuration:
 
 ```ts
-import { defineEnv, tx } from "zenvx";
+import { defineEnv } from "zenvx";
+import z from "zod";
 
-export const env = defineEnv({
-  // 1. Smart Coercion
-  PORT: tx.port(), // Coerces "3000" -> 3000
-  DEBUG: tx.bool(), // Coerces "true"/"1" -> true
-
-  // 2. Strict Validation
-  DATABASE_URL: tx.url(), // Must be a valid URL
-  API_KEY: tx.string(), // "12345" will FAIL (Must be text)
-
-  // 3. Native Zod Support (optional)
-  NODE_ENV: tx.enum(["development", "production"]),
+const schema = z.object({
+  PORT: z.coerce.number().int().min(1).max(65535),
+  DEBUG: z.preprocess((v) => v === "true" || v === "1", z.boolean()),
+  DATABASE_URL: z.string().url(),
+  CLOUDINARY_API_KEY: z.string(),
 });
+
+export const env = defineEnv(schema);
 ```
 
 Now use it anywhere in your app:
@@ -79,75 +75,12 @@ console.log(`Server running on port ${env.PORT}`);
 // TypeScript knows env.PORT is a number!
 ```
 
-## Framework Adapters
-
-zenvx supports different frameworks with adapters for proper environment handling.
-
-### Node.js
-
-```ts
-import { loadNodeEnv } from "zenvx/node";
-
-const env = loadNodeEnv({
-  PORT: tx.port(),
-  DEBUG: tx.bool(),
-});
-```
-
-> Note: In Node.js, you must install dotenv separately and load it (e.g., via import "dotenv/config" or dotenv.config()) before calling loadNodeEnv().
-
-### Next.js
-
-Server-side
-
-```ts
-import { loadServerEnv } from "zenvx/next";
-
-const env = loadServerEnv({
-  PORT: tx.port(),
-  SECRET_KEY: tx.string(),
-});
-```
-
-Client-side (only NEXT*PUBLIC*\* allowed):
-
-```ts
-import { loadClientEnv } from "zenvx/next";
-
-const env = loadClientEnv({
-  NEXT_PUBLIC_API_URL: tx.string(),
-  NEXT_PUBLIC_DEBUG: tx.bool(),
-});
-```
-
-> Attempting to access a key without NEXT*PUBLIC* in client env throws an error.
-
-### Vite
-
-```ts
-import { loadViteEnv } from "zenvx/vite";
-
-const env = loadViteEnv({
-  VITE_API_URL: tx.string(),
-  VITE_DEBUG: tx.bool(),
-});
-```
-
 ## .env.example Auto-Generation
 
 zenvx can automatically generate a .env.example file from your schema — keeping your documentation always in sync.
 
 ```ts
-defineEnv(
-  {
-    DATABASE_URL: tx.url(),
-    PORT: tx.port().default(3000),
-    DEBUG: tx.bool(),
-  },
-  {
-    generateExample: true,
-  },
-);
+defineEnv(schema, { generateExample: true });
 ```
 
 This produces:
@@ -215,46 +148,4 @@ If your .env file is missing values or has invalid types, zenvx stops the proces
 PORT: Must be a valid port (1-65535)
 API_KEY: Value should be text, but looks like a number.
 DATABASE_URL: Must be a valid URL
-```
-
-# The `tx` Validator Helper
-
-`zenvx` provides a `tx` object with pre-configured Zod schemas optimized for `.env` files.
-
-| Validator        | Description                                                        | Example Input (.env) | Result (JS)     |
-| ---------------- | ------------------------------------------------------------------ | -------------------- | --------------- |
-| `tx.string()`    | Strict string. Rejects purely numeric values (prevents lazy keys). | `abc_key`            | `"abc_key"`     |
-| `tx.number()`    | Coerces string to number.                                          | `"50"`               | `50`            |
-| `tx.bool()`      | Smart boolean. Accepts true, false, 1, 0.                          | `"true"`, `"1"`      | `true`          |
-| `tx.port()`      | Validates port range (1-65535).                                    | `"3000"`             | `3000`          |
-| `tx.url()`       | Strict URL validation.                                             | `"https://site.com"` | `"https://..."` |
-| `tx.email()`     | Valid email address.                                               | `"admin@app.com"`    | `"admin@..."`   |
-| `tx.json()`      | Parses a JSON string into an Object.                               | `{"foo":"bar"}`      | `{foo: "bar"}`  |
-| `tx.enum([...])` | Strict allow-list.                                                 | `"PROD"`             | `"PROD"`        |
-
-## Customizing Error Messages
-
-Every tx validator accepts an optional custom error message.
-
-```ts
-export const env = defineEnv({
-  API_KEY: tx.string("Please provide a REAL API Key, not just numbers!"),
-  PORT: tx.port("Port is invalid or out of range"),
-});
-```
-
-## Mixing with Standard Zod
-
-You can mix tx helpers with standard Zod schemas if you need specific logic.
-
-```ts
-import { defineEnv, tx } from "zenvx";
-import { z } from "zod";
-
-export const env = defineEnv({
-  PORT: tx.port(),
-
-  // Standard Zod Schema
-  APP_NAME: z.string().min(5).default("My Super App"),
-});
 ```

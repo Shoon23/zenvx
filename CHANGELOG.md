@@ -63,3 +63,54 @@
 
 - TypeScript errors in Vite (`Property 'env' does not exist on type 'ImportMeta'`) resolved via `ImportMeta` type declaration
 - Next.js `process.env` type errors fixed via `NodeJS.ProcessEnv` declaration
+
+## [0.2.2] - 2026-01-30
+
+### Fixed
+
+- Removed `process.exit(1)` from `createTypedProxy` to prevent forced
+  process termination when accessing undefined environment variables.
+- Improves compatibility with build-time environments (Vite, Next.js)
+  and non-Node runtimes.
+
+# Changelog
+
+## 1.0.0 – Stable Release 🎉
+
+This release simplifies zenvx to focus on **native Zod validation only**.
+
+### ⚠️ Breaking Changes
+
+- Removed `tx` helper utilities
+- Removed opinionated coercion and strict string rules
+- `defineEnv` now requires the Zod instance to be passed explicitly
+- Validation behavior is fully controlled by user-defined Zod schemas
+- **Next.js and Vite adapters have been removed**
+  - Only Node.js environment loading is supported now
+
+### ✅ Added
+
+- Explicit Zod instance injection (`defineEnv(z, schema)`)
+- Clear separation of runtime vs build-time validation
+- Improved type safety and downstream compatibility
+- Cleaner, more predictable environment handling
+
+### 🔄 Changed
+
+- API keys and IDs are now treated as strings by default
+- Boolean, number, and port coercion must be explicitly defined using Zod
+
+### ❌ Removed
+
+- `tx.string`, `tx.number`, `tx.bool`, `tx.port`, and all `tx.*` helpers
+- Implicit validation and coercion logic
+- Next.js and Vite adapters
+
+### 💡 Why
+
+- Prevents accidental type mismatches (e.g., API keys becoming numbers)
+- Avoids hidden magic and surprising behavior
+- Keeps zenvx lightweight and future-proof
+- Aligns closely with native Zod usage
+
+---

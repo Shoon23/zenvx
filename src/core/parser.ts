@@ -1,12 +1,16 @@
-import { z } from "zod";
-import type { ZodObject, ZodRawShape } from "zod";
+import type * as z from "zod";
 import type { ValidationMode } from "./types.js";
 
-export function parseEnv<T extends ZodRawShape>(
-  schema: ZodObject<T>,
+export function parseEnv<TSchema extends z.ZodObject<z.ZodRawShape>>(
+  schema: TSchema,
   source: Record<string, unknown>,
-  mode: ValidationMode = "runtime",
-): z.infer<ZodObject<T>> {
+
+  options?: {
+    exitOnFail?: boolean;
+    mode?: ValidationMode;
+  },
+): z.infer<TSchema> {
+  const mode = options?.mode ?? "runtime";
   const result = schema.safeParse(source);
 
   if (!result.success) {
@@ -31,11 +35,13 @@ export function parseEnv<T extends ZodRawShape>(
 
     if (mode === "build") {
       throw new Error(box);
-    } else {
-      console.warn(box);
+    }
+
+    console.warn(box);
+    if (options?.exitOnFail ?? true) {
       process.exit(1);
     }
   }
 
-  return result.success ? result.data : ({} as z.infer<ZodObject<T>>);
+  return result.data as z.infer<TSchema>;
 }
